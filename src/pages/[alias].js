@@ -1,12 +1,9 @@
-import fs from "fs";
-import path from "path";
-
-const linksFilePath = path.join(process.cwd(), "links.json");
-
 export async function getServerSideProps(context) {
-  const slug = context.params.slug;
-  const links = JSON.parse(fs.readFileSync(linksFilePath));
-  const link = links.find((link) => link.id === slug);
+  const alias = context.params.alias;
+  const response = await fetch(
+    `${process.env.BASE_URL}/api/shortener?alias=${alias}`
+  );
+  const link = await response.json();
   if (!link) {
     return { notFound: true };
   }

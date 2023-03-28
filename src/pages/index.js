@@ -1,92 +1,102 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import Head from "next/head";
+import styles from "../styles/Home.module.css";
 
-export default function Home() {
+export default function Home({ links }) {
   const [url, setUrl] = useState("");
-  const [customId, setCustomId] = useState("");
+  const [customAlias, setCustomAlias] = useState("");
   const [shortUrl, setShortUrl] = useState("");
-  const [error, setError] = useState(null);
-  const [links, setLinks] = useState([]);
+  const [error, setError] = useState("");
+  const [allLinks, setAllLinks] = useState(links);
 
-  useEffect(() => {
-    const fetchLinks = async () => {
-      const response = await fetch("/api/links");
-      const data = await response.json();
-      setLinks(data);
-    };
-    fetchLinks();
-  }, []);
-
-  const handleSubmit = async (event) => {
+  async function handleSubmit(event) {
     event.preventDefault();
-    setError(null);
-    const response = await fetch("/api/shorten", {
+    setError("");
+    setShortUrl("");
+    const response = await fetch("/api/shortener", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ url, customId }),
+      body: JSON.stringify({ url, customAlias }),
+      headers: { "Content-Type": "application/json" },
     });
-    const data = await response.json();
     if (response.ok) {
-      setShortUrl(`${window.location.origin}/${data.id}`);
+      const newLink = await response.json();
+      setShortUrl(`${window.location.origin}/${newLink.alias}`);
+      setAllLinks([...allLinks, newLink]);
     } else {
-      setError(data.error);
+      const errorData = await response.json();
+      setError(errorData.error);
     }
-  };
+  }
 
   return (
-    <div>
-      <form onSubmit={handleSubmit}>
-        <label htmlFor="url">URL:</label>
-        <input
-          id="url"
-          type="url"
-          value={url}
-          onChange={(event) => setUrl(event.target.value)}
-          required
-        />
-        <label htmlFor="customId">Custom ID:</label>
-        <input
-          id="customId"
-          type="text"
-          value={customId}
-          onChange={(event) => setCustomId(event.target.value)}
-        />
-        <button type="submit">Shorten</button>
-      </form>
-      {error && <p>{error}</p>}
-      {shortUrl && (
-        <p>
-          Your shortened URL is:{" "}
-          <a href={shortUrl} target="_blank" rel="noopener noreferrer">
-            {shortUrl}
-          </a>
-        </p>
-      )}
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>URL</th>
-          </tr>
-        </thead>
-        <tbody>
-          {links.map((link) => (
-            <tr key={link.id}>
-              <td>{link.id}</td>
-              <td>
-                <a
-                  href={`/${link.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {link.url}
-                </a>
-              </td>
+    <div className={styles.container}>
+      <Head>
+        <title>URL Shortener</title>
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+
+      <main className={styles.main}>
+        <h1 className={styles.title}>URL Shortener</h1>
+        <form onSubmit={handleSubmit}>
+          <label className={styles.label}>
+            URL:
+            <input
+              className={styles.input}
+              type="url"
+              required
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
+            />
+          </label>
+          <label className={styles.label}>
+            Custom Alias (optional):
+            <input
+              className={styles.input}
+              type="text"
+              value={customAlias}
+              onChange={(event) => setCustomAlias(event.target.value)}
+            />
+          </label>
+          <button className={styles.button} type="submit">
+            Shorten
+          </button>
+        </form>
+        {error && <p className={styles.error}>{error}</p>}
+        {shortUrl && (
+          <p className={styles.shortUrl}>
+            <a href={shortUrl} target="_blank" rel="noopener noreferrer">
+              {shortUrl}
+            </a>
+          </p>
+        )}
+        <h2 className={styles.subtitle}>All Links</h2>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>Alias</th>
+              <th>URL</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {allLinks.map((link) => (
+              <tr key={link.alias}>
+                <td>{link.alias}</td>
+                <td>
+                  <a href={link.url} target="_blank" rel="noopener noreferrer">
+                    {link.url}
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </main>
     </div>
   );
+}
+
+export async function getServerSideProps() {
+  const response = await fetch(`${process.env.BASE_URL}/api/shortener`);
+  const links = await response.json();
+  return { props: { links } };
 }

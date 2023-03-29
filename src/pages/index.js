@@ -112,8 +112,8 @@ export default function Home({ links }) {
       <main className="position-absolute w-100 h-100 d-flex justify-content-center align-items-center">
         <div className="container">
           <div className="row justify-content-center">
-            <div className="col-md-6 col-lg-5">
-              <div className="card shadow-lg p-3 bg-glassmorphism">
+            <div className="col-md-6 col-lg-5 bg-glassmorphism">
+              <div className="card shadow-lg p-3">
                 <div className="card-body text-center">
                   <h1 className="h2 mb-4 fw-bold text-uppercase text-white">
                     Shorten your URL

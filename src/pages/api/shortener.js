@@ -45,7 +45,7 @@ async function getAllLinks() {
 
 async function getLink(alias) {
   const { rows } =
-    await sql`SELECT 1 from url_shortener WHERE alias = ${alias}`;
+    await sql`SELECT * from url_shortener WHERE alias = ${alias}`;
   return rows.length ? setLinkResponse(rows[0]) : null;
 }
 

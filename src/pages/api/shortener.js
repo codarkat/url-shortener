@@ -1,11 +1,5 @@
-import { Client } from "@notionhq/client";
 import { nanoid } from "nanoid";
-
-const ALIAS_PROPERTY = "Alias";
-const URL_PROPERTY = "URL";
-
-const notion = new Client({ auth: process.env.NOTION_API_KEY });
-const databaseId = process.env.NOTION_DATABASE_ID;
+import { sql } from "@vercel/postgres";
 
 export default async function handler(req, res) {
   if (req.method === "POST") {
@@ -22,15 +16,9 @@ export default async function handler(req, res) {
       });
     } else {
       const alias = customAlias || nanoid(6);
-      const properties = {
-        URL: { url },
-        Alias: { title: [{ text: { content: alias } }] },
-      };
-      const response = await notion.pages.create({
-        parent: { database_id: databaseId },
-        properties,
-      });
-      res.status(200).json(setLinkResponse(response));
+      const { rows } =
+        await sql`INSERT INTO url_shortener (alias, url) VALUES (${alias}, ${url}) RETURNING alias, url;`;
+      res.status(200).json(setLinkResponse(rows[0]));
     }
   } else if (req.method === "GET") {
     const { alias } = req.query;
@@ -47,31 +35,23 @@ export default async function handler(req, res) {
 }
 
 async function getAllLinks() {
-  const response = await notion.databases.query({
-    database_id: databaseId,
-  });
-  const links = response.results.map((link) => {
-    return setLinkResponse(link);
-  });
+  const { rows } = await sql`SELECT * from url_shortener`;
+  const links = rows.map((row) => ({
+    alias: row.alias,
+    url: row.url,
+  }));
   return links;
 }
 
 async function getLink(alias) {
-  const response = await notion.databases.query({
-    database_id: databaseId,
-    filter: {
-      property: ALIAS_PROPERTY,
-      title: {
-        equals: alias,
-      },
-    },
-  });
-  return response.results[0] ? setLinkResponse(response.results[0]) : null;
+  const { rows } =
+    await sql`SELECT 1 from url_shortener WHERE alias = ${alias}`;
+  return rows.length ? setLinkResponse(rows[0]) : null;
 }
 
 function setLinkResponse(link) {
   return {
-    alias: link.properties[ALIAS_PROPERTY].title[0].plain_text,
-    url: link.properties[URL_PROPERTY].url,
+    alias: link.alias,
+    url: link.url,
   };
 }

@@ -4,6 +4,11 @@ import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
 import Table from "react-bootstrap/Table";
 
+import { sql } from "@vercel/postgres";
+
+import { createApi } from "unsplash-js";
+import nodeFetch from "node-fetch";
+
 function AllLinksModal(props) {
   const { links, baseUrl, ...modalProps } = props;
   return (
@@ -55,7 +60,7 @@ function AllLinksModal(props) {
   );
 }
 
-export default function Home({ links }) {
+export default function Home({ links, urlBackground }) {
   const [url, setUrl] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [customAlias, setCustomAlias] = useState("");
@@ -96,7 +101,7 @@ export default function Home({ links }) {
       <div
         className="position-absolute w-100 h-100"
         style={{
-          backgroundImage: `url("https://picsum.photos/1920/1080")`,
+          backgroundImage: `url("${urlBackground}")`,
           backgroundRepeat: "no-repeat",
           backgroundSize: "cover",
           opacity: "0.8",
@@ -224,7 +229,19 @@ export default function Home({ links }) {
 }
 
 export async function getServerSideProps() {
-  const response = await fetch(`${process.env.BASE_URL}/api/shortener`);
-  const links = await response.json();
-  return { props: { links } };
+  const { rows } = await sql`SELECT * from url_shortener`;
+  const links = rows.map((row) => ({
+    alias: row.alias,
+    url: row.url,
+  }));
+
+  const unsplash = createApi({
+    accessKey: process.env.UNSPLASH_ACCESS_KEY,
+    fetch: nodeFetch,
+  });
+
+  const urlBackground = await unsplash.photos
+    .getRandom()
+    .then((result) => result.response.urls.regular);
+  return { props: { links, urlBackground } };
 }

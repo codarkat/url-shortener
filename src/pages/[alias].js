@@ -16,8 +16,5 @@ export async function getServerSideProps(context) {
 }
 
 export default function Link() {
-  // This component is never actually rendered, because the server-side redirect
-  // is triggered by `getServerSideProps`. We include this component just to satisfy
-  // the requirements of Next.js.
   return null;
 }
